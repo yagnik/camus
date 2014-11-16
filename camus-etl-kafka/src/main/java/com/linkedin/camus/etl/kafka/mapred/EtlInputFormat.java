@@ -70,18 +70,18 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 	public static final String CAMUS_MESSAGE_DECODER_CLASS = "camus.message.decoder.class";
 	public static final String ETL_IGNORE_SCHEMA_ERRORS = "etl.ignore.schema.errors";
 	public static final String ETL_AUDIT_IGNORE_SERVICE_TOPIC_LIST = "etl.audit.ignore.service.topic.list";
-	
+
 	public static final String CAMUS_WORK_ALLOCATOR_CLASS = "camus.work.allocator.class";
 	public static final String CAMUS_WORK_ALLOCATOR_DEFAULT = "com.linkedin.camus.workallocater.BaseAllocator";
 
 	private static Logger log = null;
-	
+
 	public EtlInputFormat()
   {
 	  if (log == null)
 	    log = Logger.getLogger(getClass());
   }
-	
+
 	public static void setLogger(Logger log){
 	  EtlInputFormat.log = log;
 	}
@@ -95,7 +95,7 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 
 	/**
 	 * Gets the metadata from Kafka
-	 * 
+	 *
 	 * @param context
 	 * @return
 	 */
@@ -133,7 +133,7 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 		CamusJob.stopTiming("kafkaSetupTime");
 		return topicMetadataList;
 	}
- 
+
 	private SimpleConsumer createConsumer(JobContext context, String broker) {
 		if (!broker.matches(".+:\\d+"))
 			throw new InvalidParameterException("The kakfa broker " + broker + " must follow address:port pattern");
@@ -149,7 +149,7 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 
 	/**
 	 * Gets the latest offsets and create the requests as needed
-	 * 
+	 *
 	 * @param context
 	 * @param offsetRequestInfo
 	 * @return
@@ -197,8 +197,8 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 				long earliestOffset = earliestOffsetResponse.offsets(
 						topicAndPartition.topic(),
 						topicAndPartition.partition())[0];
-				
-				//TODO: factor out kafka specific request functionality 
+
+				//TODO: factor out kafka specific request functionality
 				CamusRequest etlRequest = new EtlRequest(context,
 						topicAndPartition.topic(), Integer.toString(leader
 								.getLeaderId()), topicAndPartition.partition(),
@@ -346,7 +346,7 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 			}
 		});
 
-		log.info("The requests from kafka metadata are: \n" + finalRequests);		
+		log.info("The requests from kafka metadata are: \n" + finalRequests);
 		writeRequests(finalRequests, context);
 		Map<CamusRequest, EtlKey> offsetKeys = getPreviousOffsets(
 				FileInputFormat.getInputPaths(context), context);
@@ -355,15 +355,15 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 			if (moveLatest.contains(request.getTopic())
 					|| moveLatest.contains("all")) {
 			    log.info("Moving to latest for topic: " + request.getTopic());
-			  //TODO: factor out kafka specific request functionality 
+			  //TODO: factor out kafka specific request functionality
 			    EtlKey oldKey = offsetKeys.get(request);
 			    EtlKey newKey = new EtlKey(request.getTopic(), ((EtlRequest)request).getLeaderId(),
               request.getPartition(), 0, request
               .getLastOffset());
-			    
+
 			    if (oldKey != null)
 			      newKey.setMessageSize(oldKey.getMessageSize());
-			    
+
 			    offsetKeys.put(request, newKey);
 			}
 
@@ -389,7 +389,7 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 				request.setOffset(request.getEarliestOffset());
 				offsetKeys.put(
 						request,
-					//TODO: factor out kafka specific request functionality 
+					//TODO: factor out kafka specific request functionality
 						new EtlKey(request.getTopic(), ((EtlRequest)request).getLeaderId(),
 								request.getPartition(), 0, request
 										.getOffset()));
@@ -402,12 +402,12 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 		CamusJob.stopTiming("getSplits");
 		CamusJob.startTiming("hadoop");
 		CamusJob.setTime("hadoop_start");
-		
+
 		WorkAllocator allocator = getWorkAllocator(context);
 		Properties props = new Properties();
 		props.putAll(context.getConfiguration().getValByRegex(".*"));
 		allocator.init(props);
-		
+
 		return allocator.allocateWork(finalRequests, context);
 	}
 
@@ -472,7 +472,7 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 				NullWritable.class);
 
 		for (CamusRequest r : requests) {
-		  //TODO: factor out kafka specific request functionality 
+		  //TODO: factor out kafka specific request functionality
 			writer.append((EtlRequest) r, NullWritable.get());
 		}
 		writer.close();
@@ -489,7 +489,7 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 						f.getPath(), context.getConfiguration());
 				EtlKey key = new EtlKey();
 				while (reader.next(key, NullWritable.get())) {
-				//TODO: factor out kafka specific request functionality 
+				//TODO: factor out kafka specific request functionality
 					CamusRequest request = new EtlRequest(context,
 							key.getTopic(), key.getLeaderId(),
 							key.getPartition());
@@ -509,7 +509,7 @@ public class EtlInputFormat extends InputFormat<EtlKey, CamusWrapper> {
 		}
 		return offsetKeysMap;
 	}
-	
+
 	 public static void setWorkAllocator(JobContext job, Class<WorkAllocator> val) {
 	    job.getConfiguration().setClass(CAMUS_WORK_ALLOCATOR_CLASS, val, WorkAllocator.class);
 	  }
